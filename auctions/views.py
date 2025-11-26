@@ -1,11 +1,31 @@
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
+from django import forms
 
-from .models import User
+from .models import User, Listing
 
+class ListingForm(forms.ModelForm):
+    class Meta:
+        model = Listing
+        fields = ["title", "description", "starting_bid","image_url","category"]
+        labels = {
+            "title": "Titel*",
+            "description": "Description*",
+            "starting_bid": "Starting Bid*",
+            "image_url": "Image URL",
+            "category": "Category",
+        }
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "starting_bid": forms.NumberInput(attrs={"class": "form-control"}),
+            "image_url": forms.URLInput(attrs={"class": "form-control"}),
+            "category": forms.Select(attrs={"class": "form-control"}),
+        }
 
 def index(request):
     return render(request, "auctions/index.html")
@@ -61,3 +81,19 @@ def register(request):
         return HttpResponseRedirect(reverse("index"))
     else:
         return render(request, "auctions/register.html")
+
+
+@login_required
+def CreateListing_view(request):
+    if request.method == "POST":
+        form = ListingForm(request.POST)
+        if form.is_valid():
+            listing = form.save(commit=False)
+            listing.owner = request.user
+            listing.save()
+            return HttpResponseRedirect(reverse("index"))
+    else:
+        form = ListingForm()
+        return render(request, "auctions/CreateListing.html",{
+            "form": form
+        })
