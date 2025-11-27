@@ -9,16 +9,20 @@ from django import forms
 from .models import User, Listing
 
 class ListingForm(forms.ModelForm):
+    # I am so glad that i found that in the django documentation.
+    # This made the form so much easyier to connect it with the Model
     class Meta:
         model = Listing
         fields = ["title", "description", "starting_bid","image_url","category"]
         labels = {
+            # Add * for required field. Didn't found an easy way to automate that....
             "title": "Titel*",
             "description": "Description*",
             "starting_bid": "Starting Bid*",
             "image_url": "Image URL",
             "category": "Category",
         }
+        # Added some bootstrap for the style
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
@@ -28,7 +32,10 @@ class ListingForm(forms.ModelForm):
         }
 
 def index(request):
-    return render(request, "auctions/index.html")
+    listings = Listing.objects.filter(active=True).order_by("-created")
+    return render(request, "auctions/index.html",{
+        "Listings": listings
+    })
 
 
 def login_view(request):
@@ -82,14 +89,22 @@ def register(request):
     else:
         return render(request, "auctions/register.html")
 
+def listing(request, listing_id):
+    listing = Listing.objects.get(pk=listing_id)
+    return render(request, "auctions/listing.html",{
+        "listing" : listing
+    })
 
 @login_required
 def CreateListing_view(request):
     if request.method == "POST":
         form = ListingForm(request.POST)
         if form.is_valid():
+            #The user/owner ist not in the submit. So save it but not commit it and add in the second stept the owner
             listing = form.save(commit=False)
+            #Give the model the owner / current user
             listing.owner = request.user
+            # Now save it
             listing.save()
             return HttpResponseRedirect(reverse("index"))
     else:

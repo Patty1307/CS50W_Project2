@@ -3,5 +3,34 @@
 {% block body %}
     <h2>Active Listings</h2>
 
-    TODO
+{% for listing in Listings %}
+<div class="container-xxl mx-3">
+    <a href="{% url 'listing' listing.id %}" class="text-decoration-none text-reset">
+        <div class="p-4 rounded shadow-sm mt-3 border border-light-subtle hover-lift">
+            <div class="row g-3 align-items-center">
+                
+                <!-- Picture -->
+                <div class="col-sm-4">
+                    <img 
+                        src="{{ listing.image_url|default_if_none:"https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg"|default:"https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg" }}" 
+                        alt="{{ listing.title }}" 
+                        class="img-fluid rounded mx-auto d-block"
+                        style="height: 200px; width: 100%; object-fit: cover;">
+                </div>
+
+                <!-- Text -->
+                <div class="col-sm-8 text-break">
+                    <h4 class="mb-2">{{ listing.title }}</h4>
+                    <p class="mb-1">
+                    <span class="font-weight-bold">Price:</span>
+                    <span>{{ listing.starting_bid }} €</span>
+                    </p>
+                    <p class="mb-0 text-truncate">{{ listing.description }}</p>
+                    <p class="mt-3"><i>Created {{ listing.created }}</i></p>
+                </div>
+            </div>
+        </div>
+    </a>
+</div>
+{% endfor %}
 {% endblock %}
