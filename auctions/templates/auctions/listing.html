@@ -1,8 +1,24 @@
 {% extends "auctions/layout.html" %}
 
 {% block body %}
-    <h2>Listing {{ listing.title }}</h2>
+    <h2>Listing: {{ listing.title }}</h2>
+<button type="button" class="badge rounded-pill text-bg-secondary border-0">
+    Watchlist
+</button>
 
 
+    
+
+
+
+<div class="container-fluid mt-3">
+        <img 
+        src="{{ listing.image_url|default_if_none:'https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg' }}"
+        alt="{{ listing.title }}"
+        class="rounded float-start img-fluid"
+        style="height: 300px; width: auto; object-fit: cover;"
+        onerror="this.onerror=null; this.src='https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg';"
+        />
+    </div>
 
 {% endblock %}

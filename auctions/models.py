@@ -20,6 +20,18 @@ class Listing(models.Model):
         return self.title
     
 
+class Watchlist(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name="watchlist_items")
+    listing = models.ForeignKey('Listing', on_delete=models.CASCADE, related_name="watchlisted_by")
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("user", "listing") # One User can only be have the same Listing item once only in this Table/Model
+
+    def __str__(self):
+        return f"{self.user} → {self.listing}"
+
+
 class Category(models.Model):
     name = models.CharField(max_length=255)
 
