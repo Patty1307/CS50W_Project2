@@ -1,9 +1,13 @@
 from django.contrib import admin
 
-from .models import Listing, Category
+from .models import Listing, Category, Watchlist
 # Register your models here.
-class ListAdmin(admin.ModelAdmin):
+class ListingAdmin(admin.ModelAdmin):
     list_display = ("id","created", "owner", "title","starting_bid", "category", "active","edited")
 
-admin.site.register(Listing,ListAdmin)
+class WatchlistAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "listing")
+
+admin.site.register(Listing,ListingAdmin)
 admin.site.register(Category)
+admin.site.register(Watchlist, WatchlistAdmin)

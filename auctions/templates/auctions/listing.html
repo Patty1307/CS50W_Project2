@@ -2,14 +2,20 @@
 
 {% block body %}
     <h2>Listing: {{ listing.title }}</h2>
-<button type="button" class="badge rounded-pill text-bg-secondary border-0">
-    Watchlist
-</button>
 
-
-    
-
-
+        <div>
+            {% if user.is_authenticated %}
+                <form action="{% url 'toggle_watchlist' listing.id %}" method="POST">
+                    {% csrf_token %}
+                    {% if is_watching %}
+                        <button type="submit" class="btn btn-warning btn-sm border-0">★ Watching</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-sm btn-secondary border-0">★ Add to Watchlist</button>
+                    {% endif %}
+                </form>
+            {% else %}
+            {% endif %}
+        </div>
 
 <div class="container-fluid mt-3">
         <img 

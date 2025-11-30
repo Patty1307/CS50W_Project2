@@ -2,11 +2,11 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django import forms
 
-from .models import User, Listing
+from .models import User, Listing, Watchlist
 
 class ListingForm(forms.ModelForm):
     # I am so glad that i found that in the django documentation.
@@ -33,6 +33,9 @@ class ListingForm(forms.ModelForm):
 
 def index(request):
     listings = Listing.objects.filter(active=True).order_by("-created")
+    
+
+            
     return render(request, "auctions/index.html",{
         "Listings": listings
     })
@@ -90,9 +93,19 @@ def register(request):
         return render(request, "auctions/register.html")
 
 def listing(request, listing_id):
-    listing = Listing.objects.get(pk=listing_id)
+    # the get_object_or_404 ist a good shortcut for the possibility there is no objects. Faster then 'try'
+    listing = get_object_or_404(Listing, id=listing_id)
+    
+    is_watching = False
+    if request.user.is_authenticated:
+        is_watching = Watchlist.objects.filter(
+            user=request.user,
+            listing=listing
+        ).exists()
+    
     return render(request, "auctions/listing.html",{
-        "listing" : listing
+        "listing" : listing,
+        "is_watching" : is_watching
     })
 
 @login_required
@@ -112,3 +125,21 @@ def CreateListing_view(request):
         return render(request, "auctions/CreateListing.html",{
             "form": form
         })
+
+@login_required 
+def toggle_watchlist(request, listing_id):
+    if request.method == "POST":
+         # Get the Listing Objects we wanna watch oder delete the watch
+         listing = get_object_or_404(Listing, pk=listing_id)
+         # get_or_create gives back a tuble you can unapck with two variables
+         # Watch_entry = The Database Entry/obejct
+         # created = True or False
+         watch_entry, created = Watchlist.objects.get_or_create(
+             user = request.user,
+             listing = listing
+         )
+        # When no new Databaseentry ist created then delete the old one
+         if not created:
+             watch_entry.delete()
+    
+    return HttpResponseRedirect(reverse('listing', args=[listing_id]))

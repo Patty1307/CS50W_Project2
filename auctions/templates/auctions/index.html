@@ -4,18 +4,25 @@
     <h2>Active Listings</h2>
 
 {% for listing in Listings %}
-<div class="container-fluid">
+<div class="container-xxl">
     <a href="{% url 'listing' listing.id %}" class="text-decoration-none text-reset">
         <div class="p-4 rounded shadow-sm mt-3 border border-light-subtle hover-lift">
             <div class="row g-3 align-items-center">
                 
                 <!-- Picture -->
-                <div class="col-sm-4">
+                <div class="col-sm-4 postiton-relative">
+                    {% if user.is_authenticated %}
+                        {% if user.is_watching %}
+                            <button  class="btn btn-warning btn-sm position-absolute">★</button>
+                        {% endif %} 
+                    {% else %}
+                    {% endif %} 
+
                     <img 
                         src="{{ listing.image_url|default_if_none:'https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg' }}"
                         alt="{{ listing.title }}"
                         class="img-fluid rounded mx-auto d-block"
-                        style="height: 200px; width: 100%; object-fit: cover;"
+                        style="height: 200px; width: 100%; object-fit: contain;"
                         onerror="this.onerror=null; this.src='https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg';"
                     />
                 </div>
@@ -33,6 +40,10 @@
             </div>
         </div>
     </a>
+</div>
+{% empty %}
+<div class="container-fluid text-center mt-5" style="max-width: 400px;">
+    <p>There are no active listings. Come back later!</p>
 </div>
 {% endfor %}
 {% endblock %}
