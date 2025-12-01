@@ -20,7 +20,16 @@
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'index' %}">Active Listings</a>
             </li>
+            <li class="nav-item">
+                    <a class="nav-link" href="{% url 'categories' %}">Categorys</a>
+            </li>
             {% if user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'watchlist' %}">Watchlist <span class="badge text-bg-secondary">{{ user.active_watchlist_count }}</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'won_auctions' %}">Won auctions</a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'CreateListing' %}">Create Listing</a>
                 </li>

@@ -2,13 +2,13 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError, models
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Value, BooleanField, Subquery
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django import forms
 
-from .models import User, Listing, Watchlist, Bid
+from .models import User, Listing, Watchlist, Bid, Category
 
 class ListingForm(forms.ModelForm):
     # I am so glad that i found that in the django documentation.
@@ -41,32 +41,15 @@ class BidForm(forms.ModelForm):
         widgets = {
             "bid": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Place your bid", "min":"0"})
         }
+   
 
 def index(request):
-    listings_qs = Listing.objects.filter(active=True)
-
-    if request.user.is_authenticated:
-        # Create a query set for Watchlist. This will be later like an subqurry in SQL
-        watch_qs = Watchlist.objects.filter(
-            user = request.user,
-            # OuterRef gets the pk from the main Querry
-            listing = OuterRef('pk')
-        )
-        # This is now like adding an additional column in SQL with the Subquerry watch_qs.
-        # When watch_qs for this listing item is Null or Nothing then False else True
-        # Select listings_qs.*, Exists(watch_qs) FROM listings_qs
-        listings_qs = listings_qs.annotate(
-            is_on_watchlist = Exists(watch_qs)
-        )
-    else:
-        listings_qs = listings_qs.annotate(
-            is_on_watchlist = models.Value(False, output_field=models.BooleanField())
-        )
-    
-    listings = listings_qs.order_by("-created")
-
+ 
+    listings = get_active_listings_with_watchflag(request.user)
+     
     return render(request, "auctions/index.html",{
-        "Listings": listings
+        "Listings": listings,
+        "header" : "Active Listings"
     })
 
 
@@ -138,7 +121,7 @@ def listing(request, listing_id):
     return render(request, "auctions/listing.html",{
         "listing" : listing,
         "is_watching" : is_watching,
-        "form" : form,
+        "form_bid" : form,
         "user_has_highest": listing.user_has_highest_bid(request.user)
     })
 
@@ -196,3 +179,92 @@ def place_bid(request,listing_id):
                     messages.add_message(request, messages.ERROR, error, extra_tags="danger")
             
     return HttpResponseRedirect(reverse('listing', args=[listing_id]))
+
+def profile(request,user_id):
+    user = get_object_or_404(User, pk=user_id)
+
+    return render(request, "auctions/profile.html",{
+        "user" : user
+    })
+
+@login_required
+def close_auction(reqeust, listing_id):
+    if reqeust.method == "POST":
+        listing = get_object_or_404(Listing, pk=listing_id)
+        listing.active = False
+        listing.save()
+    return redirect("index")
+
+@login_required
+def watchlist(request):
+    listings = get_active_listings_with_watchflag(request.user).filter(
+        watchlisted_by__user=request.user
+    )
+
+    return render(request, "auctions/index.html", {
+        "Listings": listings,
+        "header" : "Watchlist"
+    })
+
+def categories_view(request):
+    categories = Category.objects.all().order_by("name")
+    return render(request, "auctions/categories.html", {
+        "categories": categories
+    })
+
+def category(request, category_id):
+
+    category = get_object_or_404(Category, pk=category_id)
+    listings = get_active_listings_with_watchflag(request.user).filter(category = category)
+    
+    return render(request, "auctions/index.html", {
+        "header": f"Category: {category}",
+        "Listings": listings
+    })
+
+@login_required
+def won_auctions(request):
+    listings = get_won_auctions_for_user(request.user)
+
+    return render(request, "auctions/index.html", {
+        "header": "Won auctions",
+        "Listings": listings
+    })
+
+
+def get_active_listings_with_watchflag(user):
+
+    #Gives back a List with every actice Listing and annotation to Watchlist if logged in
+    qs = Listing.objects.filter(active=True)
+
+    if user.is_authenticated:
+        watch_qs = Watchlist.objects.filter(
+            user = user,
+            listing = OuterRef('pk')
+        )
+
+        qs = qs.annotate(
+            is_on_watchlist=Exists(watch_qs)
+        )
+    else:
+        qs = qs.annotate(
+            is_on_watchlist=Value(False, output_field=BooleanField())
+        )
+
+    return qs.order_by("-created")
+
+def get_won_auctions_for_user(user):
+    highest_bid_qs = Bid.objects.filter(
+        listing=OuterRef('pk')
+    ).order_by('-bid')
+
+    return (
+        Listing.objects
+        .filter(active=False)
+        .annotate(
+            winner_id=Subquery(highest_bid_qs.values('user_id')[:1])
+        )
+        .filter(winner_id__isnull=False, winner_id=user.id)
+        .order_by('-created')
+    )
+

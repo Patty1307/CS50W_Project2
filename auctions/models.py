@@ -6,6 +6,11 @@ from django.db import models
 class User(AbstractUser):
     pass
 
+    @property
+    def active_watchlist_count(self):
+        return self.watchlist_items.filter(listing__active=True).count()
+
+
 class Listing(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -20,11 +25,14 @@ class Listing(models.Model):
     def __str__(self):
         return self.title
 
+# Each proberty is a column in this table. So Django handles everything with the joins etc. 
+# Thats amazing. Its hard to unsterstand when you only knew SQL but makes live so much easier and better
+
     # 1) Give the object with the highest bid
     def highest_bid_obj(self):
         return self.bids.order_by("-bid").first()
 
-    # 2) Gives the highest prive from the Listing back
+    # 2) Gives the highest price from the listing back
     @property
     def highest_bid(self):
         highest = self.highest_bid_obj()
