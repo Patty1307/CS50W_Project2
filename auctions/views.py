@@ -1,12 +1,14 @@
+from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.db import IntegrityError
+from django.db import IntegrityError, models
+from django.db.models import Exists, OuterRef
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django import forms
 
-from .models import User, Listing, Watchlist
+from .models import User, Listing, Watchlist, Bid
 
 class ListingForm(forms.ModelForm):
     # I am so glad that i found that in the django documentation.
@@ -31,11 +33,38 @@ class ListingForm(forms.ModelForm):
             "category": forms.Select(attrs={"class": "form-control"}),
         }
 
-def index(request):
-    listings = Listing.objects.filter(active=True).order_by("-created")
-    
+class BidForm(forms.ModelForm):
+    class Meta:
+        model = Bid
+        fields = ["bid"]
+        labels = {"bid": ""}
+        widgets = {
+            "bid": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Place your bid", "min":"0"})
+        }
 
-            
+def index(request):
+    listings_qs = Listing.objects.filter(active=True)
+
+    if request.user.is_authenticated:
+        # Create a query set for Watchlist. This will be later like an subqurry in SQL
+        watch_qs = Watchlist.objects.filter(
+            user = request.user,
+            # OuterRef gets the pk from the main Querry
+            listing = OuterRef('pk')
+        )
+        # This is now like adding an additional column in SQL with the Subquerry watch_qs.
+        # When watch_qs for this listing item is Null or Nothing then False else True
+        # Select listings_qs.*, Exists(watch_qs) FROM listings_qs
+        listings_qs = listings_qs.annotate(
+            is_on_watchlist = Exists(watch_qs)
+        )
+    else:
+        listings_qs = listings_qs.annotate(
+            is_on_watchlist = models.Value(False, output_field=models.BooleanField())
+        )
+    
+    listings = listings_qs.order_by("-created")
+
     return render(request, "auctions/index.html",{
         "Listings": listings
     })
@@ -97,15 +126,20 @@ def listing(request, listing_id):
     listing = get_object_or_404(Listing, id=listing_id)
     
     is_watching = False
+    form = None
     if request.user.is_authenticated:
         is_watching = Watchlist.objects.filter(
             user=request.user,
             listing=listing
         ).exists()
-    
+            
+        form = BidForm()
+
     return render(request, "auctions/listing.html",{
         "listing" : listing,
-        "is_watching" : is_watching
+        "is_watching" : is_watching,
+        "form" : form,
+        "user_has_highest": listing.user_has_highest_bid(request.user)
     })
 
 @login_required
@@ -131,7 +165,7 @@ def toggle_watchlist(request, listing_id):
     if request.method == "POST":
          # Get the Listing Objects we wanna watch oder delete the watch
          listing = get_object_or_404(Listing, pk=listing_id)
-         # get_or_create gives back a tuble you can unapck with two variables
+         # get_or_create gives back a tuple you can unapck with two variables
          # Watch_entry = The Database Entry/obejct
          # created = True or False
          watch_entry, created = Watchlist.objects.get_or_create(
@@ -142,4 +176,23 @@ def toggle_watchlist(request, listing_id):
          if not created:
              watch_entry.delete()
     
+    return HttpResponseRedirect(reverse('listing', args=[listing_id]))
+
+@login_required 
+def place_bid(request,listing_id):
+    listing = get_object_or_404(Listing, pk=listing_id)
+    
+    if request.method == "POST":
+        form = BidForm(request.POST)
+        form.instance.listing = listing
+        form.instance.user = request.user
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your bid was placed successfully.")
+        else:
+            for errors in form.errors.values():
+                for error in errors:
+                    messages.add_message(request, messages.ERROR, error, extra_tags="danger")
+            
     return HttpResponseRedirect(reverse('listing', args=[listing_id]))

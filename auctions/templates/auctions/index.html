@@ -12,8 +12,8 @@
                 <!-- Picture -->
                 <div class="col-sm-4 postiton-relative">
                     {% if user.is_authenticated %}
-                        {% if user.is_watching %}
-                            <button  class="btn btn-warning btn-sm position-absolute">★</button>
+                        {% if listing.is_on_watchlist %}
+                            <button  class="badge text-bg-warning position-absolute border-0">★</button>
                         {% endif %} 
                     {% else %}
                     {% endif %} 

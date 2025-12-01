@@ -17,14 +17,47 @@
             {% endif %}
         </div>
 
-<div class="container-fluid mt-3">
+    <div class="container-fluid mt-3">
         <img 
         src="{{ listing.image_url|default_if_none:'https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg' }}"
         alt="{{ listing.title }}"
-        class="rounded float-start img-fluid"
+        class="rounded img-fluid"
         style="height: 300px; width: auto; object-fit: cover;"
         onerror="this.onerror=null; this.src='https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg';"
         />
     </div>
 
+    <div class="container-fluid mt-5">
+        <p><strong>Description:</strong> {{ listing.description }}</p>
+    </div>
+
+    <div class="container-fluid mt-3">
+        <p class="display-6">{{ listing.highest_bid }} €</p>
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="container-fluid mt-3" style="max-width: 300px; margin-left: 0px;">
+            <p><small>
+                {{ listing.bids_count }} bid(s) so far.
+                {% if user_has_highest %}
+                    <p><strong>Your bid is the current highest bid.</strong></p>
+                {% else %}
+                    <p>Your bid is not the highest.</p>
+                {% endif %}
+            </small></p>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} mt-2">
+                            {{ message }}
+                        </div>
+                     {% endfor %}
+                {% endif %}
+
+            <form action="{% url 'place_bid' listing.id %}" method="POST">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" class="btn btn-primary">Place bid</button>
+            </form>
+        </div>
+    {% endif %}
 {% endblock %}
