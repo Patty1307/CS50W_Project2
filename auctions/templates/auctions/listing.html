@@ -22,7 +22,7 @@
         src="{{ listing.image_url|default_if_none:'https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg' }}"
         alt="{{ listing.title }}"
         class="rounded img-fluid"
-        style="height: 300px; width: auto; object-fit: cover;"
+        style="height: 300px; width: auto; object-fit: contain;"
         onerror="this.onerror=null; this.src='https://img.freepik.com/premium-vector/no-photo-available-vector-icon-default-image-symbol-picture-coming-soon-web-site-mobile-app_87543-10615.jpg';"
         />
     </div>
@@ -68,13 +68,12 @@
                 {% if request.user == listing.owner and listing.active %}
                     <form action="{% url 'close_auction' listing.id %}" method="POST" class="mt-3">
                         {% csrf_token %}
-                        {{ form.as_p }}
                         <button type="submit" class="btn btn-danger">Close auction</button>
                     </form>
                 {% endif %}
 
             {% endif %}
-
+            
             {% if not listing.active %}
                  <p class="badge text-bg-danger">Auction is closed</p>
             {% endif %}
@@ -83,10 +82,26 @@
     
 
     <div class="container-fluid mt-3">
+        <h3>Details</h3>
         <ul>
             <li>Listed by: <span><a href="{% url 'profile' listing.owner.id %}">{{ listing.owner }}</a></span></li>
             <li>Category: {{listing.category}}</li>
         </ul>
+        <h3>{{ comments.count }} Comment(s)</h3>
+        {% if user.is_authenticated %}
+            <form action="{% url 'comment' listing.id %}" method="POST">
+                {% csrf_token %}
+                {{ form_comment.as_p }}
+                <button type="submit" class="btn btn-primary">Comment</button>
+            </form>
+        {% endif %}
+        {% for comment in comments %}
+            <div class="container rounded mt-3 border border-light-subtle">
+                <p><span class="fw-bold">{{ comment.user }}</span> <span class="fst-italic">{{ comment.created|date:"d.m.Y H:i" }}</span></p>
+                <p>{{ comment.comment }}</p>
+            </div>
+        {% endfor %}
+
     </div>
 
 {% endblock %}

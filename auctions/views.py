@@ -8,7 +8,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django import forms
 
-from .models import User, Listing, Watchlist, Bid, Category
+from .models import User, Listing, Watchlist, Bid, Category, Comment
 
 class ListingForm(forms.ModelForm):
     # I am so glad that i found that in the django documentation.
@@ -41,7 +41,15 @@ class BidForm(forms.ModelForm):
         widgets = {
             "bid": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Place your bid", "min":"0"})
         }
-   
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ["comment"]
+        labels = {"comment": ""}
+        widgets = {
+            "comment": forms.Textarea(attrs={"class": "form-control", "rows": 1, "placeholder": "Write your comment here..."})
+        }
 
 def index(request):
  
@@ -116,13 +124,14 @@ def listing(request, listing_id):
             listing=listing
         ).exists()
             
-        form = BidForm()
 
     return render(request, "auctions/listing.html",{
         "listing" : listing,
         "is_watching" : is_watching,
-        "form_bid" : form,
-        "user_has_highest": listing.user_has_highest_bid(request.user)
+        "form_bid" : BidForm(),
+        "user_has_highest": listing.user_has_highest_bid(request.user),
+        "comments": listing.comments.order_by("-created"),
+        "form_comment" : CommentForm()
     })
 
 @login_required
@@ -231,6 +240,18 @@ def won_auctions(request):
         "Listings": listings
     })
 
+@login_required
+def comment(request, listing_id):
+    listing = get_object_or_404(Listing, pk=listing_id)
+    
+    if request.method == "POST":
+        form = CommentForm(request.POST)
+        form.instance.listing = listing
+        form.instance.user = request.user
+
+        if form.is_valid():
+            form.save()
+    return HttpResponseRedirect(reverse('listing', args=[listing_id]))
 
 def get_active_listings_with_watchflag(user):
 

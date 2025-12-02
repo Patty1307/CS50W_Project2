@@ -10,7 +10,6 @@ class User(AbstractUser):
     def active_watchlist_count(self):
         return self.watchlist_items.filter(listing__active=True).count()
 
-
 class Listing(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField()
@@ -98,3 +97,13 @@ class Bid(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+class Comment(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    listing = models.ForeignKey('Listing', on_delete=models.CASCADE, related_name="comments")
+    comment = models.CharField(max_length=1024)
+    created = models.DateTimeField(auto_now_add=True)
+    edited = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.comment[:30]}"
