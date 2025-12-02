@@ -24,8 +24,7 @@ class Listing(models.Model):
     def __str__(self):
         return self.title
 
-# Each proberty is a column in this table. So Django handles everything with the joins etc. 
-# Thats amazing. Its hard to unsterstand when you only knew SQL but makes live so much easier and better
+# Each proberty is like a column in this table. 
 
     # 1) Give the object with the highest bid
     def highest_bid_obj(self):
@@ -53,6 +52,7 @@ class Listing(models.Model):
 
         return highest.user == user
     
+    # 5) Highest bid user. Nice to see in the Admin interface
     @property
     def highest_bid_user(self):
         highest = self.highest_bid_obj()
